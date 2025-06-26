@@ -40,8 +40,8 @@ deno task build
 
 Claude Desktopの設定ファイルに以下を追加してください：
 
-**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json` **Windows**:
+`%APPDATA%\Claude\claude_desktop_config.json`
 
 #### 方法1: GitHubから直接実行（推奨）
 
@@ -55,7 +55,7 @@ Claude Desktopの設定ファイルに以下を追加してください：
         "--allow-read",
         "--allow-run",
         "--allow-env",
-        "https://raw.githubusercontent.com/nabekou29/gemini-cli-mcp-server/refs/heads/main/mod.ts"
+        "https://raw.githubusercontent.com/nabekou29/gemini-cli-mcp-server/main/mod.ts"
       ]
     }
   }
@@ -95,19 +95,56 @@ Claude Desktopの設定ファイルに以下を追加してください：
 
 ## 提供される機能
 
-### `gemini_search`
+### ツール
 
-Gemini CLIを使用してWeb検索を実行します。
+#### `search_web_with_gemini`
+
+Gemini CLIを使用してWeb検索を実行し、最新の情報を取得します。
+
+**機能:**
+
+- リアルタイムのWeb検索
+- 結果の自動キャッシュ（1時間）
+- 詳細なエラーハンドリング
 
 **パラメータ:**
 
-- `query` (string, 必須): 検索クエリ
+- `query` (string, 必須): 検索クエリ（1-500文字）
+- `useCache` (boolean, オプション): キャッシュを使用するか（デフォルト: true）
 
 **使用例:**
 
 ```
 "最新のTypeScriptの機能について検索して"
+"Deno vs Node.js 2024年の比較を検索"
 ```
+
+#### `clear_gemini_search_cache`
+
+検索結果のキャッシュをクリアします。
+
+**パラメータ:**
+
+- `query` (string, オプション): 特定のクエリのキャッシュをクリア。未指定の場合は全キャッシュをクリア
+
+#### `view_search_history`
+
+最近の検索履歴を表示します。
+
+**パラメータ:**
+
+- `limit` (number, オプション): 表示件数（1-100、デフォルト: 10）
+- `includeErrors` (boolean, オプション): エラーも含めるか（デフォルト: false）
+
+### リソース
+
+- `gemini://cache/status`: 現在のキャッシュ状態
+- `gemini://history/recent`: 最近の検索履歴
+
+### プロンプト
+
+- `search_analysis`: トピックについて包括的な分析を行うプロンプト
+- `comparative_search`: 複数項目の比較分析を行うプロンプト
 
 ## テスト
 
@@ -124,7 +161,7 @@ GitHubから直接実行してテスト：
 ```bash
 # 直接実行
 deno run --allow-read --allow-run --allow-env \
-  https://raw.githubusercontent.com/nabekou29/gemini-cli-mcp-server/main/gemini-cli-mcp-server/mod.ts
+  https://raw.githubusercontent.com/nabekou29/gemini-cli-mcp-server/main/mod.ts
 ```
 
 ## トラブルシューティング
@@ -152,4 +189,3 @@ which gemini
 ## ライセンス
 
 MIT License
-
