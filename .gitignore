@@ -1,0 +1,25 @@
+# Deno
+.deno/
+deno.lock
+
+# Compiled binary
+gemini-cli-mcp-server
+gemini-cli-mcp-server.exe
+
+# Environment variables
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
