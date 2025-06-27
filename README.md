@@ -52,9 +52,7 @@ Claude Desktopの設定ファイルに以下を追加してください：
       "command": "deno",
       "args": [
         "run",
-        "--allow-read",
-        "--allow-run",
-        "--allow-env",
+        "--allow-run=gemini",
         "https://raw.githubusercontent.com/nabekou29/gemini-cli-mcp-server/main/mod.ts"
       ]
     }
@@ -71,9 +69,7 @@ Claude Desktopの設定ファイルに以下を追加してください：
       "command": "deno",
       "args": [
         "run",
-        "--allow-read",
-        "--allow-run",
-        "--allow-env",
+        "--allow-run=gemini",
         "/path/to/gemini-cli-mcp-server/main.ts"
       ]
     }
@@ -145,46 +141,6 @@ Gemini CLIを使用してWeb検索を実行し、最新の情報を取得しま�
 
 - `search_analysis`: トピックについて包括的な分析を行うプロンプト
 - `comparative_search`: 複数項目の比較分析を行うプロンプト
-
-## テスト
-
-### ユニットテスト
-
-```bash
-deno task test
-```
-
-### 動作確認（コマンドライン）
-
-GitHubから直接実行してテスト：
-
-```bash
-# 直接実行
-deno run --allow-read --allow-run --allow-env \
-  https://raw.githubusercontent.com/nabekou29/gemini-cli-mcp-server/main/mod.ts
-```
-
-## トラブルシューティング
-
-### gemini-cli not found エラー
-
-gemini-cliがインストールされていない、またはPATHに追加されていない場合に発生します。
-
-```bash
-# gemini-cliの存在確認
-which gemini
-
-# インストールされていない場合はインストール
-# (インストール方法はgemini-cliのドキュメントを参照)
-```
-
-### Permission denied エラー
-
-必要な権限が不足している場合に発生します。以下の権限が必要です：
-
-- `--allow-read`: ファイル読み取り
-- `--allow-run`: 外部コマンド（gemini）の実行
-- `--allow-env`: 環境変数へのアクセス
 
 ## ライセンス
 
