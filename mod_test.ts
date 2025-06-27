@@ -4,7 +4,12 @@ import {
   assertRejects,
   assertStringIncludes,
 } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { ErrorType, executeGeminiSearch, searchCache, searchHistory } from "./mod.ts";
+import {
+  ErrorType,
+  executeGeminiSearch,
+  searchCache,
+  searchHistory,
+} from "./mod.ts";
 import { Server } from "npm:@modelcontextprotocol/sdk@1.3.0/server/index.js";
 import {
   CallToolRequestSchema,
@@ -13,7 +18,7 @@ import {
   ListToolsRequestSchema,
 } from "npm:@modelcontextprotocol/sdk@1.3.0/types.js";
 
-// テスト用のモック関数
+// Mock function for testing
 const originalCommand = Deno.Command;
 let mockCommandOutput: {
   code: number;
@@ -32,7 +37,7 @@ function mockGeminiCommand(output: {
     stderr: new TextEncoder().encode(output.stderr),
   };
 
-  // @ts-ignore - テスト用のモック
+  // @ts-ignore - Mock for testing
   Deno.Command = class MockCommand {
     constructor(
       public cmd: string,
@@ -55,30 +60,30 @@ function restoreCommand() {
   mockCommandOutput = null;
 }
 
-// テストのセットアップとクリーンアップ
+// Test setup and cleanup
 function setupTest() {
   searchCache.clear();
   searchHistory.length = 0;
 }
 
-Deno.test("executeGeminiSearch - 正常な検索", async () => {
+Deno.test("executeGeminiSearch - normal search", async () => {
   setupTest();
 
   try {
     mockGeminiCommand({
       code: 0,
-      stdout: "検索結果: TypeScriptの最新情報",
+      stdout: "Search result: Latest TypeScript information",
       stderr: "",
     });
 
     const result = await executeGeminiSearch("TypeScript latest");
-    assertEquals(result, "検索結果: TypeScriptの最新情報");
+    assertEquals(result, "Search result: Latest TypeScript information");
 
-    // キャッシュされていることを確認
+    // Verify cached
     assertEquals(searchCache.size, 1);
     assertEquals(searchCache.has("TypeScript latest"), true);
 
-    // 履歴に記録されていることを確認
+    // Verify recorded in history
     assertEquals(searchHistory.length, 1);
     assertEquals(searchHistory[0].query, "TypeScript latest");
     assertEquals(searchHistory[0].success, true);
@@ -87,13 +92,13 @@ Deno.test("executeGeminiSearch - 正常な検索", async () => {
   }
 });
 
-Deno.test("executeGeminiSearch - キャッシュの動作", async () => {
+Deno.test("executeGeminiSearch - cache behavior", async () => {
   setupTest();
 
   try {
     let callCount = 0;
 
-    // @ts-ignore - テスト用のモック
+    // @ts-ignore - Mock for testing
     Deno.Command = class MockCommand {
       constructor(
         public cmd: string,
@@ -106,7 +111,7 @@ Deno.test("executeGeminiSearch - キャッシュの動作", async () => {
           callCount++;
           return Promise.resolve({
             code: 0,
-            stdout: new TextEncoder().encode("キャッシュテスト結果"),
+            stdout: new TextEncoder().encode("Cache test result"),
             stderr: new Uint8Array(),
           });
         }
@@ -115,26 +120,26 @@ Deno.test("executeGeminiSearch - キャッシュの動作", async () => {
       // deno-lint-ignore no-explicit-any
     } as any;
 
-    // 1回目の実行
+    // First execution
     const result1 = await executeGeminiSearch("cache test", true);
-    assertEquals(result1, "キャッシュテスト結果");
+    assertEquals(result1, "Cache test result");
     assertEquals(callCount, 1);
 
-    // 2回目の実行（キャッシュから）
+    // Second execution (from cache)
     const result2 = await executeGeminiSearch("cache test", true);
-    assertEquals(result2, "キャッシュテスト結果");
-    assertEquals(callCount, 1); // コマンドは実行されない
+    assertEquals(result2, "Cache test result");
+    assertEquals(callCount, 1); // Command is not executed
 
-    // キャッシュを無効にして実行
+    // Execute with cache disabled
     const result3 = await executeGeminiSearch("cache test", false);
-    assertEquals(result3, "キャッシュテスト結果");
-    assertEquals(callCount, 2); // コマンドが実行される
+    assertEquals(result3, "Cache test result");
+    assertEquals(callCount, 2); // Command is executed
   } finally {
     restoreCommand();
   }
 });
 
-Deno.test("executeGeminiSearch - 空のクエリエラー", async () => {
+Deno.test("executeGeminiSearch - empty query error", async () => {
   setupTest();
 
   await assertRejects(
@@ -150,7 +155,7 @@ Deno.test("executeGeminiSearch - 空のクエリエラー", async () => {
   );
 });
 
-Deno.test("executeGeminiSearch - 長すぎるクエリエラー", async () => {
+Deno.test("executeGeminiSearch - query too long error", async () => {
   setupTest();
 
   const longQuery = "a".repeat(501);
@@ -161,11 +166,11 @@ Deno.test("executeGeminiSearch - 長すぎるクエリエラー", async () => {
   );
 });
 
-Deno.test("executeGeminiSearch - gemini-cli が見つからない", async () => {
+Deno.test("executeGeminiSearch - gemini-cli not found", async () => {
   setupTest();
 
   try {
-    // @ts-ignore - テスト用のモック
+    // @ts-ignore - Mock for testing
     Deno.Command = class MockCommand {
       constructor(
         public cmd: string,
@@ -188,7 +193,7 @@ Deno.test("executeGeminiSearch - gemini-cli が見つからない", async () => 
       ErrorType.GEMINI_NOT_FOUND,
     );
 
-    // エラーが履歴に記録されていることを確認
+    // Verify error is recorded in history
     assertEquals(searchHistory.length, 1);
     assertEquals(searchHistory[0].success, false);
     assertExists(searchHistory[0].error);
@@ -197,7 +202,7 @@ Deno.test("executeGeminiSearch - gemini-cli が見つからない", async () => 
   }
 });
 
-Deno.test("executeGeminiSearch - gemini実行エラー", async () => {
+Deno.test("executeGeminiSearch - gemini execution error", async () => {
   setupTest();
 
   try {
@@ -217,7 +222,7 @@ Deno.test("executeGeminiSearch - gemini実行エラー", async () => {
   }
 });
 
-Deno.test("MCP Server - ツール一覧", () => {
+Deno.test("MCP Server - tool list", () => {
   const server = new Server(
     {
       name: "test-server",
@@ -230,34 +235,34 @@ Deno.test("MCP Server - ツール一覧", () => {
     },
   );
 
-  // mod.tsのハンドラーと同じ設定
+  // Same configuration as mod.ts handler
   server.setRequestHandler(ListToolsRequestSchema, () => {
     return {
       tools: [
         {
           name: "search_web_with_gemini",
-          description: `Gemini CLIを使用してWeb検索を実行し、最新の情報を取得します。
+          description: `Execute web search using Gemini CLI and retrieve latest information.
         
-        このツールは以下の機能を提供します：
-        - リアルタイムのWeb検索
-        - 結果のキャッシュ（1時間）
-        - エラーハンドリングとリトライ戦略
+        This tool provides the following features:
+        - Real-time web search
+        - Result caching (1 hour)
+        - Error handling and retry strategy
         
-        成功時：検索結果のテキストを返します
-        エラー時：エラータイプと詳細なメッセージを返します`,
+        On success: Returns search result text
+        On error: Returns error type and detailed message`,
           inputSchema: {
             type: "object",
             properties: {
               query: {
                 type: "string",
                 description:
-                  "Web検索に使用するクエリ文字列（例：'TypeScript best practices 2024'）",
+                  "Search query string for web search (e.g., 'TypeScript best practices 2025')",
                 minLength: 1,
                 maxLength: 500,
               },
               useCache: {
                 type: "boolean",
-                description: "キャッシュされた結果を使用するか（デフォルト: true）",
+                description: "Whether to use cached results (default: true)",
                 default: true,
               },
             },
@@ -266,38 +271,41 @@ Deno.test("MCP Server - ツール一覧", () => {
         },
         {
           name: "clear_gemini_search_cache",
-          description: `検索結果のキャッシュをクリアします。
+          description: `Clear search result cache.
         
-        特定のクエリまたは全キャッシュをクリアできます。
-        パフォーマンス向上のため、通常はキャッシュクリアは不要です。`,
+        Can clear cache for specific query or all caches.
+        For performance improvement, cache clearing is usually unnecessary.`,
           inputSchema: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "特定のクエリのキャッシュをクリア。未指定の場合は全キャッシュをクリア",
+                description:
+                  "Clear cache for specific query. If not specified, clears all cache",
               },
             },
           },
         },
         {
           name: "view_search_history",
-          description: `最近の検索履歴を表示します。
+          description: `Display recent search history.
         
-        デバッグや検索パターンの分析に使用できます。`,
+        Can be used for debugging and analyzing search patterns.`,
           inputSchema: {
             type: "object",
             properties: {
               limit: {
                 type: "number",
-                description: "表示する履歴の件数（1-100、デフォルト: 10）",
+                description:
+                  "Number of history entries to display (1-100, default: 10)",
                 minimum: 1,
                 maximum: 100,
                 default: 10,
               },
               includeErrors: {
                 type: "boolean",
-                description: "エラーになった検索も含めるか（デフォルト: false）",
+                description:
+                  "Include searches that resulted in errors (default: false)",
                 default: false,
               },
             },
@@ -307,37 +315,37 @@ Deno.test("MCP Server - ツール一覧", () => {
     };
   });
 
-  // ハンドラーを直接呼び出す代わりに、登録されたことを確認
+  // Verify registration instead of calling handler directly
   assertExists(server);
 
-  // 実際のレスポンスを取得するには、ハンドラー関数を直接定義して呼び出す
+  // To get actual response, define and call handler function directly
   const response = (() => {
     return {
       tools: [
         {
           name: "search_web_with_gemini",
-          description: `Gemini CLIを使用してWeb検索を実行し、最新の情報を取得します。
+          description: `Execute web search using Gemini CLI and retrieve latest information.
         
-        このツールは以下の機能を提供します：
-        - リアルタイムのWeb検索
-        - 結果のキャッシュ（1時間）
-        - エラーハンドリングとリトライ戦略
+        This tool provides the following features:
+        - Real-time web search
+        - Result caching (1 hour)
+        - Error handling and retry strategy
         
-        成功時：検索結果のテキストを返します
-        エラー時：エラータイプと詳細なメッセージを返します`,
+        On success: Returns search result text
+        On error: Returns error type and detailed message`,
           inputSchema: {
             type: "object",
             properties: {
               query: {
                 type: "string",
                 description:
-                  "Web検索に使用するクエリ文字列（例：'TypeScript best practices 2024'）",
+                  "Search query string for web search (e.g., 'TypeScript best practices 2024')",
                 minLength: 1,
                 maxLength: 500,
               },
               useCache: {
                 type: "boolean",
-                description: "キャッシュされた結果を使用するか（デフォルト: true）",
+                description: "Whether to use cached results (default: true)",
                 default: true,
               },
             },
@@ -346,38 +354,41 @@ Deno.test("MCP Server - ツール一覧", () => {
         },
         {
           name: "clear_gemini_search_cache",
-          description: `検索結果のキャッシュをクリアします。
+          description: `Clear search result cache.
         
-        特定のクエリまたは全キャッシュをクリアできます。
-        パフォーマンス向上のため、通常はキャッシュクリアは不要です。`,
+        Can clear cache for specific query or all caches.
+        For performance improvement, cache clearing is usually unnecessary.`,
           inputSchema: {
             type: "object",
             properties: {
               query: {
                 type: "string",
-                description: "特定のクエリのキャッシュをクリア。未指定の場合は全キャッシュをクリア",
+                description:
+                  "Clear cache for specific query. If not specified, clears all cache",
               },
             },
           },
         },
         {
           name: "view_search_history",
-          description: `最近の検索履歴を表示します。
+          description: `Display recent search history.
         
-        デバッグや検索パターンの分析に使用できます。`,
+        Can be used for debugging and analyzing search patterns.`,
           inputSchema: {
             type: "object",
             properties: {
               limit: {
                 type: "number",
-                description: "表示する履歴の件数（1-100、デフォルト: 10）",
+                description:
+                  "Number of history entries to display (1-100, default: 10)",
                 minimum: 1,
                 maximum: 100,
                 default: 10,
               },
               includeErrors: {
                 type: "boolean",
-                description: "エラーになった検索も含めるか（デフォルト: false）",
+                description:
+                  "Include searches that resulted in errors (default: false)",
                 default: false,
               },
             },
@@ -393,7 +404,7 @@ Deno.test("MCP Server - ツール一覧", () => {
   assertEquals(response.tools[2].name, "view_search_history");
 });
 
-Deno.test("MCP Server - リソース一覧", () => {
+Deno.test("MCP Server - resource list", () => {
   const server = new Server(
     {
       name: "test-server",
@@ -411,36 +422,36 @@ Deno.test("MCP Server - リソース一覧", () => {
       resources: [
         {
           uri: "gemini://cache/status",
-          name: "キャッシュステータス",
-          description: "現在のキャッシュ状態と統計情報",
+          name: "Cache Status",
+          description: "Current cache status and statistics",
           mimeType: "application/json",
         },
         {
           uri: "gemini://history/recent",
-          name: "最近の検索履歴",
-          description: "最近実行された検索のログ",
+          name: "Recent Search History",
+          description: "Log of recently executed searches",
           mimeType: "application/json",
         },
       ],
     };
   });
 
-  // ハンドラーが登録されたことを確認
+  // Verify handler is registered
   assertExists(server);
 
-  // 実際のレスポンスを模擬
+  // Simulate actual response
   const response = {
     resources: [
       {
         uri: "gemini://cache/status",
-        name: "キャッシュステータス",
-        description: "現在のキャッシュ状態と統計情報",
+        name: "Cache Status",
+        description: "Current cache status and statistics",
         mimeType: "application/json",
       },
       {
         uri: "gemini://history/recent",
-        name: "最近の検索履歴",
-        description: "最近実行された検索のログ",
+        name: "Recent Search History",
+        description: "Log of recently executed searches",
         mimeType: "application/json",
       },
     ],
@@ -451,7 +462,7 @@ Deno.test("MCP Server - リソース一覧", () => {
   assertEquals(response.resources[1].uri, "gemini://history/recent");
 });
 
-Deno.test("MCP Server - プロンプト一覧", () => {
+Deno.test("MCP Server - prompt list", () => {
   const server = new Server(
     {
       name: "test-server",
@@ -469,27 +480,28 @@ Deno.test("MCP Server - プロンプト一覧", () => {
       prompts: [
         {
           name: "search_analysis",
-          description: "Web検索結果を分析して要約するプロンプト",
+          description: "Prompt to analyze and summarize web search results",
           arguments: [
             {
               name: "topic",
-              description: "検索・分析したいトピック",
+              description: "Topic to search and analyze",
               required: true,
             },
           ],
         },
         {
           name: "comparative_search",
-          description: "複数の観点から検索して比較分析するプロンプト",
+          description:
+            "Prompt to search from multiple perspectives and perform comparative analysis",
           arguments: [
             {
               name: "items",
-              description: "比較したい項目（カンマ区切り）",
+              description: "Items to compare (comma-separated)",
               required: true,
             },
             {
               name: "criteria",
-              description: "比較基準",
+              description: "Comparison criteria",
               required: true,
             },
           ],
@@ -498,35 +510,36 @@ Deno.test("MCP Server - プロンプト一覧", () => {
     };
   });
 
-  // ハンドラーが登録されたことを確認
+  // Verify handler is registered
   assertExists(server);
 
-  // 実際のレスポンスを模擬
+  // Simulate actual response
   const response = {
     prompts: [
       {
         name: "search_analysis",
-        description: "Web検索結果を分析して要約するプロンプト",
+        description: "Prompt to analyze and summarize web search results",
         arguments: [
           {
             name: "topic",
-            description: "検索・分析したいトピック",
+            description: "Topic to search and analyze",
             required: true,
           },
         ],
       },
       {
         name: "comparative_search",
-        description: "複数の観点から検索して比較分析するプロンプト",
+        description:
+          "Prompt to search from multiple perspectives and perform comparative analysis",
         arguments: [
           {
             name: "items",
-            description: "比較したい項目（カンマ区切り）",
+            description: "Items to compare (comma-separated)",
             required: true,
           },
           {
             name: "criteria",
-            description: "比較基準",
+            description: "Comparison criteria",
             required: true,
           },
         ],
@@ -539,18 +552,18 @@ Deno.test("MCP Server - プロンプト一覧", () => {
   assertEquals(response.prompts[1].name, "comparative_search");
 });
 
-Deno.test("履歴のサイズ制限", async () => {
+Deno.test("history size limit", async () => {
   setupTest();
 
   try {
-    // 簡単なモックを設定
+    // Set up simple mock
     mockGeminiCommand({
       code: 0,
       stdout: "result",
       stderr: "",
     });
 
-    // MAX_HISTORY (100) のエントリを追加
+    // Add MAX_HISTORY (100) entries
     for (let i = 0; i < 100; i++) {
       searchHistory.push({
         query: `test-${i}`,
@@ -559,13 +572,13 @@ Deno.test("履歴のサイズ制限", async () => {
       });
     }
 
-    // executeGeminiSearchを呼んで履歴の制限を確認
+    // Call executeGeminiSearch to verify history limit
     await executeGeminiSearch("new query");
 
-    // 履歴が100件に制限されていることを確認
+    // Verify history is limited to 100 entries
     assertEquals(searchHistory.length, 100);
 
-    // 最初のエントリが削除されていることを確認
+    // Verify first entry was removed
     assertEquals(searchHistory[0].query, "test-1");
     assertEquals(searchHistory[99].query, "new query");
   } finally {
@@ -573,13 +586,13 @@ Deno.test("履歴のサイズ制限", async () => {
   }
 });
 
-Deno.test("ツール実行 - search_web_with_gemini", async () => {
+Deno.test("tool execution - search_web_with_gemini", async () => {
   setupTest();
 
   try {
     mockGeminiCommand({
       code: 0,
-      stdout: "Denoの最新機能について...",
+      stdout: "About latest Deno features...",
       stderr: "",
     });
 
@@ -588,7 +601,7 @@ Deno.test("ツール実行 - search_web_with_gemini", async () => {
       { capabilities: { tools: {} } },
     );
 
-    // 実際のハンドラーを登録
+    // Register actual handler
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (
         request.params.name === "search_web_with_gemini" &&
@@ -608,7 +621,7 @@ Deno.test("ツール実行 - search_web_with_gemini", async () => {
       throw new Error(`Unknown tool: ${request.params.name}`);
     });
 
-    // 実際にツールを呼び出すのではなく、ハンドラーのロジックを直接テスト
+    // Test handler logic directly instead of calling tool
     const request = {
       method: "tools/call",
       params: {
@@ -617,7 +630,7 @@ Deno.test("ツール実行 - search_web_with_gemini", async () => {
       },
     };
 
-    // ハンドラーを直接呼び出す
+    // Call handler directly
     const response = await (async () => {
       if (request.params.name === "search_web_with_gemini") {
         const args = request.params.arguments as { query: string };
@@ -636,16 +649,19 @@ Deno.test("ツール実行 - search_web_with_gemini", async () => {
 
     assertExists(response.content);
     assertEquals(response.content[0].type, "text");
-    assertStringIncludes(response.content[0].text, "Denoの最新機能");
+    assertStringIncludes(
+      response.content[0].text,
+      "About latest Deno features",
+    );
   } finally {
     restoreCommand();
   }
 });
 
-Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
+Deno.test("tool execution - clear_gemini_search_cache", async () => {
   setupTest();
 
-  // キャッシュにデータを追加
+  // Add data to cache
   searchCache.set("test query", {
     result: "cached result",
     timestamp: Date.now(),
@@ -669,8 +685,8 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
             {
               type: "text",
               text: existed
-                ? `クエリ "${args.query}" のキャッシュをクリアしました`
-                : `クエリ "${args.query}" はキャッシュに存在しませんでした`,
+                ? `Cleared cache for query "${args.query}"`
+                : `Query "${args.query}" was not found in cache`,
             },
           ],
         };
@@ -681,7 +697,7 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
           content: [
             {
               type: "text",
-              text: `全キャッシュをクリアしました（${size}件）`,
+              text: `Cleared all cache (${size} entries)`,
             },
           ],
         };
@@ -690,7 +706,7 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
     throw new Error(`Unknown tool: ${request.params.name}`);
   });
 
-  // 実際にツールを呼び出すのではなく、ハンドラーのロジックを直接テスト
+  // Test handler logic directly instead of calling tool
   const response1 = await (() => {
     const request = {
       method: "tools/call",
@@ -710,8 +726,8 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
             {
               type: "text",
               text: existed
-                ? `クエリ "${args.query}" のキャッシュをクリアしました`
-                : `クエリ "${args.query}" はキャッシュに存在しませんでした`,
+                ? `Cleared cache for query "${args.query}"`
+                : `Query "${args.query}" was not found in cache`,
             },
           ],
         });
@@ -722,11 +738,11 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
 
   assertStringIncludes(
     response1.content[0].text,
-    'クエリ "test query" のキャッシュをクリアしました',
+    'Cleared cache for query "test query"',
   );
   assertEquals(searchCache.size, 0);
 
-  // 全キャッシュをクリア（空の状態）
+  // Clear all cache (empty state)
   const response2 = await (() => {
     const request = {
       method: "tools/call",
@@ -745,7 +761,7 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
           content: [
             {
               type: "text",
-              text: `全キャッシュをクリアしました（${size}件）`,
+              text: `Cleared all cache (${size} entries)`,
             },
           ],
         });
@@ -756,6 +772,6 @@ Deno.test("ツール実行 - clear_gemini_search_cache", async () => {
 
   assertStringIncludes(
     response2.content[0].text,
-    "全キャッシュをクリアしました（0件）",
+    "Cleared all cache (0 entries)",
   );
 });
