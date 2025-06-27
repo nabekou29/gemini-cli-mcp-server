@@ -12,7 +12,7 @@ import {
   ReadResourceRequestSchema,
 } from "npm:@modelcontextprotocol/sdk@1.3.0/types.js";
 
-// キャッシュとログ管理
+// Cache and log management
 interface CacheEntry {
   result: string;
   timestamp: number;
@@ -25,13 +25,13 @@ interface SearchLog {
   error?: string;
 }
 
-// グローバルストレージ
+// Global storage
 const searchCache = new Map<string, CacheEntry>();
 const searchHistory: SearchLog[] = [];
-const CACHE_TTL = 60 * 60 * 1000; // 1時間
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const MAX_HISTORY = 100;
 
-// エラータイプの定義
+// Error type definitions
 enum ErrorType {
   GEMINI_NOT_FOUND = "GEMINI_NOT_FOUND",
   GEMINI_EXECUTION_ERROR = "GEMINI_EXECUTION_ERROR",
@@ -39,36 +39,36 @@ enum ErrorType {
   CACHE_ERROR = "CACHE_ERROR",
 }
 
-// Gemini CLIを実行するための関数（強化版）
+// Function to execute Gemini CLI (enhanced version)
 async function executeGeminiSearch(
   query: string,
   useCache = true,
 ): Promise<string> {
-  // 入力検証
+  // Input validation
   if (!query || query.trim().length === 0) {
-    throw new Error(`${ErrorType.INVALID_QUERY}: 検索クエリが空です`);
+    throw new Error(`${ErrorType.INVALID_QUERY}: Search query is empty`);
   }
 
   if (query.length > 500) {
     throw new Error(
-      `${ErrorType.INVALID_QUERY}: 検索クエリが長すぎます（最大500文字）`,
+      `${ErrorType.INVALID_QUERY}: Search query is too long (max 500 characters)`,
     );
   }
 
-  // キャッシュチェック
+  // Cache check
   if (useCache) {
     const cached = searchCache.get(query);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       console.error(`[Cache Hit] Query: ${query}`);
 
-      // 成功履歴を記録
+      // Record success history
       searchHistory.push({
         query,
         timestamp: Date.now(),
         success: true,
       });
 
-      // 履歴サイズ管理
+      // Manage history size
       if (searchHistory.length > MAX_HISTORY) {
         searchHistory.shift();
       }
@@ -95,7 +95,7 @@ async function executeGeminiSearch(
 
     const result = new TextDecoder().decode(stdout);
 
-    // 結果をキャッシュ
+    // Cache the result
     if (useCache) {
       searchCache.set(query, {
         result,
@@ -103,21 +103,21 @@ async function executeGeminiSearch(
       });
     }
 
-    // 成功履歴を記録
+    // Record success history
     searchHistory.push({
       query,
       timestamp: Date.now(),
       success: true,
     });
 
-    // 履歴サイズ管理
+    // Manage history size
     if (searchHistory.length > MAX_HISTORY) {
       searchHistory.shift();
     }
 
     return result;
   } catch (error) {
-    // エラー履歴を記録
+    // Record error history
     searchHistory.push({
       query,
       timestamp: Date.now(),
@@ -127,14 +127,14 @@ async function executeGeminiSearch(
 
     if (error instanceof Deno.errors.NotFound) {
       throw new Error(
-        `${ErrorType.GEMINI_NOT_FOUND}: gemini-cli が見つかりません。インストールされていることと、PATHに含まれていることを確認してください。`,
+        `${ErrorType.GEMINI_NOT_FOUND}: gemini-cli not found. Please ensure it is installed and included in your PATH.`,
       );
     }
     throw error;
   }
 }
 
-// MCPサーバーの初期化
+// Initialize MCP server
 const server = new Server(
   {
     name: "gemini-cli-mcp-server",
@@ -149,20 +149,20 @@ const server = new Server(
   },
 );
 
-// ツールのスキーマ定義
+// Tool schema definitions
 const SearchWebSchema = z.object({
   query: z
     .string()
-    .min(1, "検索クエリは必須です")
-    .max(500, "検索クエリは500文字以内にしてください")
+    .min(1, "Search query is required")
+    .max(500, "Search query must be 500 characters or less")
     .describe(
-      "Web検索に使用するクエリ文字列（例：'TypeScript best practices 2024'）",
+      "Search query string for web search (e.g., 'TypeScript best practices 2024')",
     ),
   useCache: z
     .boolean()
     .optional()
     .default(true)
-    .describe("キャッシュされた結果を使用するか（デフォルト: true）"),
+    .describe("Whether to use cached results (default: true)"),
 });
 
 const ClearCacheSchema = z.object({
@@ -170,7 +170,7 @@ const ClearCacheSchema = z.object({
     .string()
     .optional()
     .describe(
-      "特定のクエリのキャッシュをクリア。未指定の場合は全キャッシュをクリア",
+      "Clear cache for specific query. If not specified, clears all cache",
     ),
 });
 
@@ -181,41 +181,42 @@ const ViewHistorySchema = z.object({
     .max(100)
     .optional()
     .default(10)
-    .describe("表示する履歴の件数（1-100、デフォルト: 10）"),
+    .describe("Number of history entries to display (1-100, default: 10)"),
   includeErrors: z
     .boolean()
     .optional()
     .default(false)
-    .describe("エラーになった検索も含めるか（デフォルト: false）"),
+    .describe("Include searches that resulted in errors (default: false)"),
 });
 
-// ツール一覧の登録
+// Register tool list
 server.setRequestHandler(ListToolsRequestSchema, () => {
   return {
     tools: [
       {
         name: "search_web_with_gemini",
-        description: `Gemini CLIを使用してWeb検索を実行し、最新の情報を取得します。
+        description: `Execute web search using Gemini CLI and retrieve latest information.
         
-        このツールは以下の機能を提供します：
-        - リアルタイムのWeb検索
-        - 結果のキャッシュ（1時間）
-        - エラーハンドリングとリトライ戦略
+        This tool provides the following features:
+        - Real-time web search
+        - Result caching (1 hour)
+        - Error handling and retry strategy
         
-        成功時：検索結果のテキストを返します
-        エラー時：エラータイプと詳細なメッセージを返します`,
+        On success: Returns search result text
+        On error: Returns error type and detailed message`,
         inputSchema: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "Web検索に使用するクエリ文字列（例：'TypeScript best practices 2024'）",
+              description:
+                "Search query string for web search (e.g., 'TypeScript best practices 2024')",
               minLength: 1,
               maxLength: 500,
             },
             useCache: {
               type: "boolean",
-              description: "キャッシュされた結果を使用するか（デフォルト: true）",
+              description: "Whether to use cached results (default: true)",
               default: true,
             },
           },
@@ -224,38 +225,38 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
       },
       {
         name: "clear_gemini_search_cache",
-        description: `検索結果のキャッシュをクリアします。
+        description: `Clear search result cache.
         
-        特定のクエリまたは全キャッシュをクリアできます。
-        パフォーマンス向上のため、通常はキャッシュクリアは不要です。`,
+        Can clear cache for specific query or all caches.
+        For performance improvement, cache clearing is usually unnecessary.`,
         inputSchema: {
           type: "object",
           properties: {
             query: {
               type: "string",
-              description: "特定のクエリのキャッシュをクリア。未指定の場合は全キャッシュをクリア",
+              description: "Clear cache for specific query. If not specified, clears all cache",
             },
           },
         },
       },
       {
         name: "view_search_history",
-        description: `最近の検索履歴を表示します。
+        description: `Display recent search history.
         
-        デバッグや検索パターンの分析に使用できます。`,
+        Can be used for debugging and analyzing search patterns.`,
         inputSchema: {
           type: "object",
           properties: {
             limit: {
               type: "number",
-              description: "表示する履歴の件数（1-100、デフォルト: 10）",
+              description: "Number of history entries to display (1-100, default: 10)",
               minimum: 1,
               maximum: 100,
               default: 10,
             },
             includeErrors: {
               type: "boolean",
-              description: "エラーになった検索も含めるか（デフォルト: false）",
+              description: "Include searches that resulted in errors (default: false)",
               default: false,
             },
           },
@@ -265,7 +266,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
   };
 });
 
-// ツール実行ハンドラー
+// Tool execution handler
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const startTime = Date.now();
 
@@ -301,18 +302,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             content: [
               {
                 type: "text",
-                text: `エラーが発生しました:
+                text: `An error occurred:
                 
-タイプ: ${errorType}
-詳細: ${messageParts.join(": ")}
+Type: ${errorType}
+Details: ${messageParts.join(": ")}
 
-対処法:
+Solution:
 ${
                   errorType === ErrorType.GEMINI_NOT_FOUND
-                    ? "1. gemini-cli がインストールされているか確認\n2. gemini コマンドがPATHに含まれているか確認\n3. 'which gemini' コマンドで場所を確認"
+                    ? "1. Check if gemini-cli is installed\n2. Check if gemini command is in PATH\n3. Check location with 'which gemini' command"
                     : errorType === ErrorType.INVALID_QUERY
-                    ? "1. クエリが空でないことを確認\n2. クエリが500文字以内であることを確認"
-                    : "1. gemini-cli が正常に動作するか確認\n2. ネットワーク接続を確認"
+                    ? "1. Check that query is not empty\n2. Check that query is 500 characters or less"
+                    : "1. Check if gemini-cli works properly\n2. Check network connection"
                 }`,
               },
             ],
@@ -337,8 +338,8 @@ ${
               {
                 type: "text",
                 text: existed
-                  ? `クエリ "${args.query}" のキャッシュをクリアしました`
-                  : `クエリ "${args.query}" はキャッシュに存在しませんでした`,
+                  ? `Cleared cache for query "${args.query}"`
+                  : `Query "${args.query}" was not found in cache`,
               },
             ],
           };
@@ -352,7 +353,7 @@ ${
             content: [
               {
                 type: "text",
-                text: `全キャッシュをクリアしました（${size}件）`,
+                text: `Cleared all cache (${size} entries)`,
               },
             ],
           };
@@ -370,7 +371,7 @@ ${
 
         const formatted = recent
           .map((log, i) => {
-            const time = new Date(log.timestamp).toLocaleString("ja-JP");
+            const time = new Date(log.timestamp).toLocaleString("en-US");
             const status = log.success ? "✓" : "✗";
             const error = log.error ? ` (${log.error})` : "";
             return `${i + 1}. ${status} [${time}] "${log.query}"${error}`;
@@ -381,14 +382,14 @@ ${
           content: [
             {
               type: "text",
-              text: formatted || "検索履歴がありません",
+              text: formatted || "No search history found",
             },
           ],
         };
       }
 
       default:
-        throw new Error(`不明なツール: ${request.params.name}`);
+        throw new Error(`Unknown tool: ${request.params.name}`);
     }
   } catch (error) {
     console.error(`[Tool Error] ${request.params.name}:`, error);
@@ -397,7 +398,7 @@ ${
       content: [
         {
           type: "text",
-          text: `内部エラー: ${error instanceof Error ? error.message : String(error)}`,
+          text: `Internal error: ${error instanceof Error ? error.message : String(error)}`,
         },
       ],
       isError: true,
@@ -405,27 +406,27 @@ ${
   }
 });
 
-// リソース一覧の登録
+// Register resource list
 server.setRequestHandler(ListResourcesRequestSchema, () => {
   return {
     resources: [
       {
         uri: "gemini://cache/status",
-        name: "キャッシュステータス",
-        description: "現在のキャッシュ状態と統計情報",
+        name: "Cache Status",
+        description: "Current cache status and statistics",
         mimeType: "application/json",
       },
       {
         uri: "gemini://history/recent",
-        name: "最近の検索履歴",
-        description: "最近実行された検索のログ",
+        name: "Recent Search History",
+        description: "Log of recently executed searches",
         mimeType: "application/json",
       },
     ],
   };
 });
 
-// リソース読み取りハンドラー
+// Resource read handler
 server.setRequestHandler(ReadResourceRequestSchema, (request) => {
   switch (request.params.uri) {
     case "gemini://cache/status": {
@@ -483,37 +484,37 @@ server.setRequestHandler(ReadResourceRequestSchema, (request) => {
     }
 
     default:
-      throw new Error(`不明なリソース: ${request.params.uri}`);
+      throw new Error(`Unknown resource: ${request.params.uri}`);
   }
 });
 
-// プロンプト一覧の登録
+// Register prompt list
 server.setRequestHandler(ListPromptsRequestSchema, () => {
   return {
     prompts: [
       {
         name: "search_analysis",
-        description: "Web検索結果を分析して要約するプロンプト",
+        description: "Prompt to analyze and summarize web search results",
         arguments: [
           {
             name: "topic",
-            description: "検索・分析したいトピック",
+            description: "Topic to search and analyze",
             required: true,
           },
         ],
       },
       {
         name: "comparative_search",
-        description: "複数の観点から検索して比較分析するプロンプト",
+        description: "Prompt to search from multiple perspectives and perform comparative analysis",
         arguments: [
           {
             name: "items",
-            description: "比較したい項目（カンマ区切り）",
+            description: "Items to compare (comma-separated)",
             required: true,
           },
           {
             name: "criteria",
-            description: "比較基準",
+            description: "Comparison criteria",
             required: true,
           },
         ],
@@ -522,7 +523,7 @@ server.setRequestHandler(ListPromptsRequestSchema, () => {
   };
 });
 
-// プロンプト取得ハンドラー
+// Get prompt handler
 server.setRequestHandler(GetPromptRequestSchema, (request) => {
   switch (request.params.name) {
     case "search_analysis":
@@ -532,29 +533,30 @@ server.setRequestHandler(GetPromptRequestSchema, (request) => {
             role: "user",
             content: {
               type: "text",
-              text: `以下のトピックについてWeb検索を行い、包括的な分析を提供してください。
+              text:
+                `Please perform web search on the following topic and provide comprehensive analysis.
 
-トピック: ${request.params.arguments?.topic || "[トピックを指定してください]"}
+Topic: ${request.params.arguments?.topic || "[Please specify topic]"}
 
-以下の手順で進めてください：
-1. search_web_with_gemini ツールを使用してトピックを検索
-2. 必要に応じて関連キーワードで追加検索
-3. 収集した情報を以下の観点で分析：
-   - 主要なポイントの要約
-   - 最新のトレンドや動向
-   - 重要な統計やデータ
-   - 今後の展望や予測
-4. 情報源の信頼性も考慮して結論を提示
+Please proceed with the following steps:
+1. Search the topic using search_web_with_gemini tool
+2. Perform additional searches with related keywords as needed
+3. Analyze collected information from the following perspectives:
+   - Summary of key points
+   - Latest trends and movements
+   - Important statistics and data
+   - Future prospects and predictions
+4. Present conclusions considering the reliability of information sources
 
-search_web_with_gemini ツールを使用して情報を収集してください。`,
+Please collect information using the search_web_with_gemini tool.`,
             },
           },
         ],
       };
 
     case "comparative_search": {
-      const items = request.params.arguments?.items || "項目1, 項目2";
-      const criteria = request.params.arguments?.criteria || "特徴、利点、欠点";
+      const items = request.params.arguments?.items || "item1, item2";
+      const criteria = request.params.arguments?.criteria || "features, advantages, disadvantages";
 
       return {
         messages: [
@@ -562,19 +564,20 @@ search_web_with_gemini ツールを使用して情報を収集してください
             role: "user",
             content: {
               type: "text",
-              text: `以下の項目について比較検索を行い、分析結果を提供してください。
+              text:
+                `Please perform comparative search on the following items and provide analysis results.
 
-比較項目: ${items}
-比較基準: ${criteria}
+Comparison items: ${items}
+Comparison criteria: ${criteria}
 
-以下の手順で進めてください：
-1. 各項目について search_web_with_gemini ツールで個別に検索
-2. 指定された基準に基づいて情報を整理
-3. 比較表を作成して違いを明確化
-4. それぞれの長所と短所を分析
-5. 使用シナリオに応じた推奨事項を提示
+Please proceed with the following steps:
+1. Search each item individually with search_web_with_gemini tool
+2. Organize information based on specified criteria
+3. Create comparison table to clarify differences
+4. Analyze pros and cons of each
+5. Present recommendations based on usage scenarios
 
-必ず search_web_with_gemini ツールを使用して最新の情報を収集してください。`,
+Be sure to collect latest information using the search_web_with_gemini tool.`,
             },
           },
         ],
@@ -582,31 +585,31 @@ search_web_with_gemini ツールを使用して情報を収集してください
     }
 
     default:
-      throw new Error(`不明なプロンプト: ${request.params.name}`);
+      throw new Error(`Unknown prompt: ${request.params.name}`);
   }
 });
 
-// サーバーの起動
+// Start server
 async function main() {
   const transport = new StdioServerTransport();
 
   console.error("=== Gemini CLI MCP Server v2.0.0 ===");
-  console.error(`キャッシュTTL: ${CACHE_TTL / 1000 / 60}分`);
-  console.error(`最大履歴数: ${MAX_HISTORY}件`);
-  console.error("起動中...");
+  console.error(`Cache TTL: ${CACHE_TTL / 1000 / 60} minutes`);
+  console.error(`Max history: ${MAX_HISTORY} entries`);
+  console.error("Starting...");
 
   await server.connect(transport);
 
-  console.error("サーバーが正常に起動しました（stdio）");
+  console.error("Server started successfully (stdio)");
 }
 
-// エラーハンドリング付きで起動
+// Start with error handling
 if (import.meta.main) {
   main().catch((error) => {
-    console.error("致命的エラー:", error);
+    console.error("Fatal error:", error);
     Deno.exit(1);
   });
 }
 
-// エクスポート（テスト用）
+// Export (for testing)
 export { ErrorType, executeGeminiSearch, searchCache, searchHistory };
