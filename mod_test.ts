@@ -4,12 +4,7 @@ import {
   assertRejects,
   assertStringIncludes,
 } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import {
-  ErrorType,
-  executeGeminiSearch,
-  searchCache,
-  searchHistory,
-} from "./mod.ts";
+import { ErrorType, executeGeminiSearch, searchCache, searchHistory } from "./mod.ts";
 import { Server } from "npm:@modelcontextprotocol/sdk@1.3.0/server/index.js";
 import {
   CallToolRequestSchema,
@@ -280,8 +275,7 @@ Deno.test("MCP Server - tool list", () => {
             properties: {
               query: {
                 type: "string",
-                description:
-                  "Clear cache for specific query. If not specified, clears all cache",
+                description: "Clear cache for specific query. If not specified, clears all cache",
               },
             },
           },
@@ -296,16 +290,14 @@ Deno.test("MCP Server - tool list", () => {
             properties: {
               limit: {
                 type: "number",
-                description:
-                  "Number of history entries to display (1-100, default: 10)",
+                description: "Number of history entries to display (1-100, default: 10)",
                 minimum: 1,
                 maximum: 100,
                 default: 10,
               },
               includeErrors: {
                 type: "boolean",
-                description:
-                  "Include searches that resulted in errors (default: false)",
+                description: "Include searches that resulted in errors (default: false)",
                 default: false,
               },
             },
@@ -363,8 +355,7 @@ Deno.test("MCP Server - tool list", () => {
             properties: {
               query: {
                 type: "string",
-                description:
-                  "Clear cache for specific query. If not specified, clears all cache",
+                description: "Clear cache for specific query. If not specified, clears all cache",
               },
             },
           },
@@ -379,16 +370,14 @@ Deno.test("MCP Server - tool list", () => {
             properties: {
               limit: {
                 type: "number",
-                description:
-                  "Number of history entries to display (1-100, default: 10)",
+                description: "Number of history entries to display (1-100, default: 10)",
                 minimum: 1,
                 maximum: 100,
                 default: 10,
               },
               includeErrors: {
                 type: "boolean",
-                description:
-                  "Include searches that resulted in errors (default: false)",
+                description: "Include searches that resulted in errors (default: false)",
                 default: false,
               },
             },
@@ -529,8 +518,7 @@ Deno.test("MCP Server - prompt list", () => {
       },
       {
         name: "comparative_search",
-        description:
-          "Prompt to search from multiple perspectives and perform comparative analysis",
+        description: "Prompt to search from multiple perspectives and perform comparative analysis",
         arguments: [
           {
             name: "items",
