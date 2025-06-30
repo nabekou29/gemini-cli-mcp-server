@@ -1,8 +1,8 @@
-#!/usr/bin/env -S deno run --allow-read --allow-run --allow-env
+#!/usr/bin/env -S deno run --allow-run=gemini
 
-import { Server } from "npm:@modelcontextprotocol/sdk@1.3.0/server/index.js";
-import { StdioServerTransport } from "npm:@modelcontextprotocol/sdk@1.3.0/server/stdio.js";
-import { z } from "npm:zod@3.24.1";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 import {
   CallToolRequestSchema,
   GetPromptRequestSchema,
@@ -10,7 +10,7 @@ import {
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
-} from "npm:@modelcontextprotocol/sdk@1.3.0/types.js";
+} from "@modelcontextprotocol/sdk/types.js";
 
 // Cache and log management
 interface CacheEntry {

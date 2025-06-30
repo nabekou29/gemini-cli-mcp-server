@@ -1,17 +1,12 @@
-import {
-  assertEquals,
-  assertExists,
-  assertRejects,
-  assertStringIncludes,
-} from "https://deno.land/std@0.220.0/assert/mod.ts";
+import { assertEquals, assertExists, assertRejects, assertStringIncludes } from "@std/assert";
 import { ErrorType, executeGeminiSearch, searchCache, searchHistory } from "./mod.ts";
-import { Server } from "npm:@modelcontextprotocol/sdk@1.3.0/server/index.js";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
   ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
-} from "npm:@modelcontextprotocol/sdk@1.3.0/types.js";
+} from "@modelcontextprotocol/sdk/types.js";
 
 // Mock function for testing
 const originalCommand = Deno.Command;
