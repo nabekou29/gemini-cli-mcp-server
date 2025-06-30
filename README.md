@@ -70,7 +70,7 @@ Claude Desktopの設定ファイルに以下を追加してください：
       "args": [
         "run",
         "--allow-run=gemini",
-        "/path/to/gemini-cli-mcp-server/main.ts"
+        "/path/to/gemini-cli-mcp-server/mod.ts"
       ]
     }
   }
