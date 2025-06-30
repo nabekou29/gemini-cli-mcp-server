@@ -80,7 +80,14 @@ async function executeGeminiSearch(
   console.error(`[Gemini Search] Executing query: ${query}`);
 
   const command = new Deno.Command("gemini", {
-    args: ["-p", `WebSearch: ${query}`],
+    args: [
+      "-p",
+      `You are a read-only web search assistant. Your ONLY task is to search the web for information and return the results. You MUST NOT attempt to write files, modify data, or perform any actions other than searching and returning information. 
+
+Web search query: ${query}
+
+Please search for this information and provide the results. Remember: READ-ONLY search only.`,
+    ],
     stdout: "piped",
     stderr: "piped",
   });
@@ -556,7 +563,8 @@ Please collect information using the search_web_with_gemini tool.`,
 
     case "comparative_search": {
       const items = request.params.arguments?.items || "item1, item2";
-      const criteria = request.params.arguments?.criteria || "features, advantages, disadvantages";
+      const criteria = request.params.arguments?.criteria ||
+        "features, advantages, disadvantages";
 
       return {
         messages: [
