@@ -163,7 +163,7 @@ const SearchWebSchema = z.object({
     .min(1, "Search query is required")
     .max(500, "Search query must be 500 characters or less")
     .describe(
-      "Search query string for web search (e.g., 'TypeScript best practices 2024')",
+      "Search query string for web search (e.g., 'TypeScript best practices')",
     ),
   useCache: z
     .boolean()
@@ -217,7 +217,7 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
             query: {
               type: "string",
               description:
-                "Search query string for web search (e.g., 'TypeScript best practices 2024')",
+                "Search query string for web search (e.g., 'TypeScript best practices')",
               minLength: 1,
               maxLength: 500,
             },
@@ -241,7 +241,8 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
           properties: {
             query: {
               type: "string",
-              description: "Clear cache for specific query. If not specified, clears all cache",
+              description:
+                "Clear cache for specific query. If not specified, clears all cache",
             },
           },
         },
@@ -256,14 +257,16 @@ server.setRequestHandler(ListToolsRequestSchema, () => {
           properties: {
             limit: {
               type: "number",
-              description: "Number of history entries to display (1-100, default: 10)",
+              description:
+                "Number of history entries to display (1-100, default: 10)",
               minimum: 1,
               maximum: 100,
               default: 10,
             },
             includeErrors: {
               type: "boolean",
-              description: "Include searches that resulted in errors (default: false)",
+              description:
+                "Include searches that resulted in errors (default: false)",
               default: false,
             },
           },
@@ -302,7 +305,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ],
           };
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           const [errorType, ...messageParts] = errorMessage.split(": ");
 
           return {
@@ -316,12 +320,12 @@ Details: ${messageParts.join(": ")}
 
 Solution:
 ${
-                  errorType === ErrorType.GEMINI_NOT_FOUND
-                    ? "1. Check if gemini-cli is installed\n2. Check if gemini command is in PATH\n3. Check location with 'which gemini' command"
-                    : errorType === ErrorType.INVALID_QUERY
-                    ? "1. Check that query is not empty\n2. Check that query is 500 characters or less"
-                    : "1. Check if gemini-cli works properly\n2. Check network connection"
-                }`,
+  errorType === ErrorType.GEMINI_NOT_FOUND
+    ? "1. Check if gemini-cli is installed\n2. Check if gemini command is in PATH\n3. Check location with 'which gemini' command"
+    : errorType === ErrorType.INVALID_QUERY
+      ? "1. Check that query is not empty\n2. Check that query is 500 characters or less"
+      : "1. Check if gemini-cli works properly\n2. Check network connection"
+}`,
               },
             ],
             isError: true,
@@ -512,7 +516,8 @@ server.setRequestHandler(ListPromptsRequestSchema, () => {
       },
       {
         name: "comparative_search",
-        description: "Prompt to search from multiple perspectives and perform comparative analysis",
+        description:
+          "Prompt to search from multiple perspectives and perform comparative analysis",
         arguments: [
           {
             name: "items",
@@ -540,8 +545,7 @@ server.setRequestHandler(GetPromptRequestSchema, (request) => {
             role: "user",
             content: {
               type: "text",
-              text:
-                `Please perform web search on the following topic and provide comprehensive analysis.
+              text: `Please perform web search on the following topic and provide comprehensive analysis.
 
 Topic: ${request.params.arguments?.topic || "[Please specify topic]"}
 
@@ -563,7 +567,8 @@ Please collect information using the search_web_with_gemini tool.`,
 
     case "comparative_search": {
       const items = request.params.arguments?.items || "item1, item2";
-      const criteria = request.params.arguments?.criteria ||
+      const criteria =
+        request.params.arguments?.criteria ||
         "features, advantages, disadvantages";
 
       return {
@@ -572,8 +577,7 @@ Please collect information using the search_web_with_gemini tool.`,
             role: "user",
             content: {
               type: "text",
-              text:
-                `Please perform comparative search on the following items and provide analysis results.
+              text: `Please perform comparative search on the following items and provide analysis results.
 
 Comparison items: ${items}
 Comparison criteria: ${criteria}
